@@ -3,7 +3,7 @@ local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Mappl
 
 local Window = Library:Create("quest","Da hood")
 local Tab1 = Window:Tab("Aimlocks",true)
-local Tab2 = Window:Tab("Aimlock2",true)
+
 Tab1:Label("Aimlock")
 
 Tab1:Button("camlock",function(bool)
