@@ -1,12 +1,12 @@
 local Mercury = loadstring(game:HttpGet("https://raw.githubusercontent.com/deeeity/mercury-lib/master/src.lua"))()
 local GUI = Mercury:Create{
-	Name = "bestar Scripts",
+	Name = "QUEST Scripts",
 	Size = UDim2.fromOffset(600, 400),
 	Theme = Mercury.Themes.Rust,
 	Link = "https://github.com/deeeity/mercury-lib"
 }
 GUI:Notification{
-	Title = "bestar Scripts Loaded",
+	Title = "QUEST Scripts Loaded",
 	Text = "Thanks For Purchasing <3",
 	Duration = 3,
 	Callback = function() end
