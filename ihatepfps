@@ -49,7 +49,7 @@ MainTab:Button{
 		end
 	end
 }
-AimTab:Button{
+MainTab:Button{
 	Name = "camlock",
 	Description = "allows u to lock on someone.",
 	Callback = function()
