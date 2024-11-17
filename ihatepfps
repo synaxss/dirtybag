@@ -49,11 +49,76 @@ MainTab:Button{
 		end
 	end
 }
-MainTab:Button{
-	Name = "camlock",
-	Description = "allows u to lock on someone.",
-	Callback = function()
 
+
+
+MainTab:Slider{
+    Name = "Walk Speed",
+    Default = 16,
+    Min = 1,
+    Max = 22.1,
+    Description = "Adjust the walk speed of the character",
+    Callback = function(Value)
+        local character = game.Players.LocalPlayer.Character
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                while true do
+                    humanoid.WalkSpeed = Value
+                    wait(0.1)
+                end
+            end
+        end
+    end
+}
+MainTab:Button{
+    Name = "DELETED FLOOR FIX",
+	Description = "Stops You From Falling Threw Some Building. (TESTING).",
+    Callback = function()
+    local baseplateSize = Vector3.new(10000000000, 0, 10000000000)
+    local player = game.Players.LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    local function SpawnBaseplate()
+    local baseplatePosition = humanoidRootPart.Position + Vector3.new(0, -3.3, 0)
+    local baseplate = Instance.new("Part")
+    baseplate.Size = baseplateSize
+    baseplate.Position = baseplatePosition
+    baseplate.Anchored = true
+    baseplate.CanCollide = true
+    baseplate.Parent = game.Workspace
+    baseplate.BrickColor = BrickColor.new("Dark stone grey")
+    baseplate.Material = Enum.Material.Concrete
+    end
+    game.Players.LocalPlayer.CharacterAdded:Connect(function()
+     SpawnBaseplate()
+    end)
+    if game.Players.LocalPlayer.Character then
+    SpawnBaseplate()
+    end
+    end
+}
+MainTab:Button{
+	Name = "C + Click Delete",
+	Description = "Hold C and Click To Delete Modules.",
+	Callback = function(state)
+	local Plr = game:GetService("Players").LocalPlayer
+    local Mouse = Plr:GetMouse()
+    Mouse.Button1Down:connect(function()
+    if not game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.C) then return end
+    if not Mouse.Target then return end
+    Mouse.Target:Destroy()
+    end)
+	end
+}
+
+
+AimTab:Button{
+	Name = "camlock",
+	Description = locks,
+	Callback = function()
+    
+    
     getgenv().OldAimPart = "HumanoidRootPart"
     getgenv().AimPart = "HumanoidRootPart" -- For R15 Games: {UpperTorso, LowerTorso, HumanoidRootPart, Head} | For R6 Games: {Head, Torso, HumanoidRootPart}  
         getgenv().AimlockKey = "q"
@@ -224,67 +289,8 @@ MainTab:Button{
            end
         end
     end)
-
     
-    }
-MainTab:Slider{
-    Name = "Walk Speed",
-    Default = 16,
-    Min = 1,
-    Max = 22.1,
-    Description = "Adjust the walk speed of the character",
-    Callback = function(Value)
-        local character = game.Players.LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                while true do
-                    humanoid.WalkSpeed = Value
-                    wait(0.1)
-                end
-            end
-        end
-    end
-}
-MainTab:Button{
-    Name = "DELETED FLOOR FIX",
-	Description = "Stops You From Falling Threw Some Building. (TESTING).",
-    Callback = function()
-    local baseplateSize = Vector3.new(10000000000, 0, 10000000000)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local function SpawnBaseplate()
-    local baseplatePosition = humanoidRootPart.Position + Vector3.new(0, -3.3, 0)
-    local baseplate = Instance.new("Part")
-    baseplate.Size = baseplateSize
-    baseplate.Position = baseplatePosition
-    baseplate.Anchored = true
-    baseplate.CanCollide = true
-    baseplate.Parent = game.Workspace
-    baseplate.BrickColor = BrickColor.new("Dark stone grey")
-    baseplate.Material = Enum.Material.Concrete
-    end
-    game.Players.LocalPlayer.CharacterAdded:Connect(function()
-     SpawnBaseplate()
-    end)
-    if game.Players.LocalPlayer.Character then
-    SpawnBaseplate()
-    end
-    end
-}
-MainTab:Button{
-	Name = "C + Click Delete",
-	Description = "Hold C and Click To Delete Modules.",
-	Callback = function(state)
-	local Plr = game:GetService("Players").LocalPlayer
-    local Mouse = Plr:GetMouse()
-    Mouse.Button1Down:connect(function()
-    if not game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.C) then return end
-    if not Mouse.Target then return end
-    Mouse.Target:Destroy()
-    end)
-	end
+     end
 }
 AimTab:Toggle{
     Name = "Aimbot",
