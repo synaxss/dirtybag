@@ -114,14 +114,14 @@ MainTab:Button{
 
 
 AimTab:Button{
-	Name = "camlock",
+	Name = "camlock","e",
 	Description = locks,
 	Callback = function()
     
     
-    getgenv().OldAimPart = "HumanoidRootPart"
-    getgenv().AimPart = "HumanoidRootPart" -- For R15 Games: {UpperTorso, LowerTorso, HumanoidRootPart, Head} | For R6 Games: {Head, Torso, HumanoidRootPart}  
-        getgenv().AimlockKey = "q"
+    getgenv().OldAimPart = "Head"
+    getgenv().AimPart = "Head" -- For R15 Games: {Head, Head, Headt, Head} | For R6 Games: {Head, Head, Head}  
+        getgenv().AimlockKey = "e"
         getgenv().AimRadius = 30 -- How far away from someones character you want to lock on at
         getgenv().ThirdPerson = true 
         getgenv().FirstPerson = true
