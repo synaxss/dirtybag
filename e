@@ -1,10 +1,8 @@
---sb 
-
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Mapple7777/UI-Librarys/main/UI-1/UI.lua"))()
 
 
-local Window = Library:Create("quest","sb")
+local Window = Library:Create("quest")
 local Tab1 = Window:Tab("Aimlocks",true)
 local Tab2 = Window:Tab("Aimlock2",true)
 Tab1:Label("Aimlock")
