@@ -1,1810 +1,759 @@
-local Mercury = loadstring(game:HttpGet("https://raw.githubusercontent.com/deeeity/mercury-lib/master/src.lua"))()
-local GUI = Mercury:Create{
-	Name = "QUEST Scripts",
-	Size = UDim2.fromOffset(600, 400),
-	Theme = Mercury.Themes.Rust,
-	Link = "https://github.com/deeeity/mercury-lib"
-}
-GUI:Notification{
-	Title = "QUEST Scripts Loaded",
-	Text = "Thanks For Purchasing <3",
-	Duration = 3,
-	Callback = function() end
-}
-local MainTab = GUI:Tab{
+local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+local Window = OrionLib:MakeWindow({Name = "QUEST", HidePremium = false, SaveConfig = true, ConfigFolder = "QUEST"})
+
+local MainTab = Window:MakeTab({
 	Name = "Main",
-	Icon = "rbxassetid://18298087757"
-}
-local AimTab = GUI:Tab{
-	Name = "Aim",
-	Icon = "rbxassetid://18298087757"
-}
-local VisualsTab = GUI:Tab{
-	Name = "Visuals",
-	Icon = "rbxassetid://18298086732"
-}
-local AutofarmTab = GUI:Tab{
-	Name = "AutoFarm",
-	Icon = "rbxassetid://18298086732"
-}
-local TeleTab = GUI:Tab{
-	Name = "Teleport",
-	Icon = "rbxassetid://18298087757"
-}
-MainTab:Button{
-	Name = "Instant Interact",
-	Description = "Allows You To Instantly Press E On Prompts.",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+OrionLib:MakeNotification({
+	Name = "Owned",
+	Content = "quest",
+	Image = "rbxassetid://4483345998",
+	Time = 7
+}) -- Dendrite.cc was here!!
+OrionLib:MakeNotification({
+	Name = "Read!",
+	Content = "You Must Start Job Before Starting Auto Farm!",
+	Image = "rbxassetid://4483345998",
+	Time = 7
+})
+
+MainTab:AddButton({
+	Name = "AimLock (e To Lock)",
 	Callback = function()
-		local function modifyProximityPrompts()
-			local proximityPrompts = game:GetService("Workspace"):GetDescendants()
-			for _, instance in ipairs(proximityPrompts) do
-				if instance:IsA("ProximityPrompt") then
-					instance.HoldDuration = 0
+		getgenv().OldAimPart = "HumanoidRootPart"
+		getgenv().AimPart = "HumanoidRootPart" -- For R15 Games: {UpperTorso, LowerTorso, HumanoidRootPart, Head} | For R6 Games: {Head, Torso, HumanoidRootPart}  
+		getgenv().AimlockKey = "e"
+		getgenv().AimRadius = 30 -- How far away from someones character you want to lock on at
+		getgenv().ThirdPerson = true 
+		getgenv().FirstPerson = true
+		getgenv().TeamCheck = false -- Check if Target is on your Team (True means it wont lock onto your teamates, false is vice versa) (Set it to false if there are no teams)
+		getgenv().PredictMovement = true -- Predicts if they are moving in fast velocity (like jumping) so the aimbot will go a bit faster to match their speed 
+		getgenv().PredictionVelocity = 9.100
+		getgenv().CheckIfJumped = true
+		getgenv().Smoothness = false
+		getgenv().SmoothnessAmount = 0.2
+
+		local Players, Uis, RService, SGui = game:GetService"Players", game:GetService"UserInputService", game:GetService"RunService", game:GetService"StarterGui";
+		local Client, Mouse, Camera, CF, RNew, Vec3, Vec2 = Players.LocalPlayer, Players.LocalPlayer:GetMouse(), workspace.CurrentCamera, CFrame.new, Ray.new, Vector3.new, Vector2.new;
+		local Aimlock, MousePressed, CanNotify = true, false, false;
+		local AimlockTarget;
+		local OldPre;
+
+
+
+		getgenv().WorldToViewportPoint = function(P)
+			return Camera:WorldToViewportPoint(P)
+		end
+
+		getgenv().WorldToScreenPoint = function(P)
+			return Camera.WorldToScreenPoint(Camera, P)
+		end
+
+		getgenv().GetObscuringObjects = function(T)
+			if T and T:FindFirstChild(getgenv().AimPart) and Client and Client.Character:FindFirstChild("Head") then 
+				local RayPos = workspace:FindPartOnRay(RNew(
+					T[getgenv().AimPart].Position, Client.Character.Head.Position)
+				)
+				if RayPos then return RayPos:IsDescendantOf(T) end
+			end
+		end
+
+		getgenv().GetNearestTarget = function()
+			-- Credits to whoever made this, i didnt make it, and my own mouse2plr function kinda sucks
+			local players = {}
+			local PLAYER_HOLD  = {}
+			local DISTANCES = {}
+			for i, v in pairs(Players:GetPlayers()) do
+				if v ~= Client then
+					table.insert(players, v)
+				end
+			end
+			for i, v in pairs(players) do
+				if v.Character ~= nil then
+					local AIM = v.Character:FindFirstChild("Head")
+					if getgenv().TeamCheck == true and v.Team ~= Client.Team then
+						local DISTANCE = (v.Character:FindFirstChild("Head").Position - game.Workspace.CurrentCamera.CFrame.p).magnitude
+						local RAY = Ray.new(game.Workspace.CurrentCamera.CFrame.p, (Mouse.Hit.p - game.Workspace.CurrentCamera.CFrame.p).unit * DISTANCE)
+						local HIT,POS = game.Workspace:FindPartOnRay(RAY, game.Workspace)
+						local DIFF = math.floor((POS - AIM.Position).magnitude)
+						PLAYER_HOLD[v.Name .. i] = {}
+						PLAYER_HOLD[v.Name .. i].dist= DISTANCE
+						PLAYER_HOLD[v.Name .. i].plr = v
+						PLAYER_HOLD[v.Name .. i].diff = DIFF
+						table.insert(DISTANCES, DIFF)
+					elseif getgenv().TeamCheck == false and v.Team == Client.Team then 
+						local DISTANCE = (v.Character:FindFirstChild("Head").Position - game.Workspace.CurrentCamera.CFrame.p).magnitude
+						local RAY = Ray.new(game.Workspace.CurrentCamera.CFrame.p, (Mouse.Hit.p - game.Workspace.CurrentCamera.CFrame.p).unit * DISTANCE)
+						local HIT,POS = game.Workspace:FindPartOnRay(RAY, game.Workspace)
+						local DIFF = math.floor((POS - AIM.Position).magnitude)
+						PLAYER_HOLD[v.Name .. i] = {}
+						PLAYER_HOLD[v.Name .. i].dist= DISTANCE
+						PLAYER_HOLD[v.Name .. i].plr = v
+						PLAYER_HOLD[v.Name .. i].diff = DIFF
+						table.insert(DISTANCES, DIFF)
+					end
+				end
+			end
+
+			if unpack(DISTANCES) == nil then
+				return nil
+			end
+
+			local L_DISTANCE = math.floor(math.min(unpack(DISTANCES)))
+			if L_DISTANCE > getgenv().AimRadius then
+				return nil
+			end
+
+			for i, v in pairs(PLAYER_HOLD) do
+				if v.diff == L_DISTANCE then
+					return v.plr
+				end
+			end
+			return nil
+		end
+
+		Mouse.KeyDown:Connect(function(a)
+			if not (Uis:GetFocusedTextBox()) then 
+				if a == AimlockKey and AimlockTarget == nil then
+					pcall(function()
+						if MousePressed ~= true then MousePressed = true end 
+						local Target;Target = GetNearestTarget()
+						if Target ~= nil then 
+							AimlockTarget = Target
+						end
+					end)
+				elseif a == AimlockKey and AimlockTarget ~= nil then
+					if AimlockTarget ~= nil then AimlockTarget = nil end
+					if MousePressed ~= false then 
+						MousePressed = false 
+					end
+				end
+			end
+		end)
+
+		RService.RenderStepped:Connect(function()
+			if getgenv().ThirdPerson == true and getgenv().FirstPerson == true then 
+				if (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude > 1 or (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude <= 1 then 
+					CanNotify = true 
+				else 
+					CanNotify = false 
+				end
+			elseif getgenv().ThirdPerson == true and getgenv().FirstPerson == false then 
+				if (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude > 1 then 
+					CanNotify = true 
+				else 
+					CanNotify = false 
+				end
+			elseif getgenv().ThirdPerson == false and getgenv().FirstPerson == true then 
+				if (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude <= 1 then 
+					CanNotify = true 
+				else 
+					CanNotify = false 
+				end -- Dendrite.cc was here!!
+			end
+			if Aimlock == true and MousePressed == true then 
+				if AimlockTarget and AimlockTarget.Character and AimlockTarget.Character:FindFirstChild(getgenv().AimPart) then 
+					if getgenv().FirstPerson == true then
+						if CanNotify == true then
+							if getgenv().PredictMovement == true then
+								if getgenv().Smoothness == true then
+									--// The part we're going to lerp/smoothen \\--
+									local Main = CF(Camera.CFrame.p, AimlockTarget.Character[getgenv().AimPart].Position + AimlockTarget.Character[getgenv().AimPart].Velocity/PredictionVelocity)
+
+									--// Making it work \\--
+									Camera.CFrame = Camera.CFrame:Lerp(Main, getgenv().SmoothnessAmount, Enum.EasingStyle.Elastic, Enum.EasingDirection.InOut)
+								else
+									Camera.CFrame = CF(Camera.CFrame.p, AimlockTarget.Character[getgenv().AimPart].Position + AimlockTarget.Character[getgenv().AimPart].Velocity/PredictionVelocity)
+								end
+							elseif getgenv().PredictMovement == false then 
+								if getgenv().Smoothness == true then
+									--// The part we're going to lerp/smoothen \\--
+									local Main = CF(Camera.CFrame.p, AimlockTarget.Character[getgenv().AimPart].Position)
+
+									--// Making it work \\--
+									Camera.CFrame = Camera.CFrame:Lerp(Main, getgenv().SmoothnessAmount, Enum.EasingStyle.Elastic, Enum.EasingDirection.InOut)
+								else
+									Camera.CFrame = CF(Camera.CFrame.p, AimlockTarget.Character[getgenv().AimPart].Position)
+								end
+							end
+						end
+					end
+				end
+			end
+			if CheckIfJumped == true then
+				if AimlockTarget.Character.HuDDDDDDDDDDWmanoid.FloorMaterial == Enum.Material.Air then
+
+					getgenv().AimPart = "HumanoidRootPart"
+				else
+					getgenv().AimPart = getgenv().OldAimPart
+
+				end
+			end
+		end)
+	end,
+})
+
+
+
+MainTab:AddButton({
+	Name = "Walk Faster",
+	Callback = function()
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 23
+    -- The function that takes place when the button is pressed
+    end,
+ })
+
+
+
+local EspTab = Window:MakeTab({
+	Name = "Esp",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+EspTab:AddButton({
+	Name = "boxs",
+	Callback = function()
+		
+  -- Settings
+  local Settings = {
+	Box_Color = Color3.fromRGB(255, 0, 0),
+	Box_Thickness = 2,
+	Team_Check = false,
+	Team_Color = false,
+	Autothickness = true
+}
+
+--Locals
+local Space = game:GetService("Workspace")
+local Player = game:GetService("Players").LocalPlayer
+local Camera = Space.CurrentCamera
+
+-- Locals
+local function NewLine(color, thickness)
+	local line = Drawing.new("Line")
+	line.Visible = false
+	line.From = Vector2.new(0, 0)
+	line.To = Vector2.new(0, 0)
+	line.Color = color
+	line.Thickness = thickness
+	line.Transparency = 1
+	return line
+end
+
+local function Vis(lib, state)
+	for i, v in pairs(lib) do
+		v.Visible = state
+	end
+end
+
+local function Colorize(lib, color)
+	for i, v in pairs(lib) do
+		v.Color = color
+	end
+end
+
+local Black = Color3.fromRGB(0, 0, 0)
+
+local function Rainbow(lib, delay)
+	for hue = 0, 1, 1/100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 do
+		local color = Color3.fromHSV(hue, 0.6, 1)
+		Colorize(lib, color)
+		wait(delay)
+	end
+	Rainbow(lib)
+end
+--Main Draw Function
+local function Main(plr)
+	repeat wait() until plr.Character ~= nil and plr.Character:FindFirstChild("Humanoid") ~= nil
+	local R15
+	if plr.Character.Humanoid.RigType == Enum.HumanoidRigType.R15 then
+		R15 = true
+	else 
+		R15 = false
+	end
+	local Library = {
+		TL1 = NewLine(Settings.Box_Color, Settings.Box_Thickness),
+		TL2 = NewLine(Settings.Box_Color, Settings.Box_Thickness),
+
+		TR1 = NewLine(Settings.Box_Color, Settings.Box_Thickness),
+		TR2 = NewLine(Settings.Box_Color, Settings.Box_Thickness),
+
+		BL1 = NewLine(Settings.Box_Color, Settings.Box_Thickness),
+		BL2 = NewLine(Settings.Box_Color, Settings.Box_Thickness),
+
+		BR1 = NewLine(Settings.Box_Color, Settings.Box_Thickness),
+		BR2 = NewLine(Settings.Box_Color, Settings.Box_Thickness)
+	}
+	coroutine.wrap(Rainbow)(Library, 0.15)
+	local oripart = Instance.new("Part")
+	oripart.Parent = Space
+	oripart.Transparency = 1
+	oripart.CanCollide = false
+	oripart.Size = Vector3.new(1, 1, 1)
+	oripart.Position = Vector3.new(0, 0, 0)
+	--Updater Loop
+	local function Updater()
+		local c 
+		c = game:GetService("RunService").RenderStepped:Connect(function()
+			if plr.Character ~= nil and plr.Character:FindFirstChild("Humanoid") ~= nil and plr.Character:FindFirstChild("HumanoidRootPart") ~= nil and plr.Character.Humanoid.Health > 0 and plr.Character:FindFirstChild("Head") ~= nil then
+				local Hum = plr.Character
+				local HumPos, vis = Camera:WorldToViewportPoint(Hum.HumanoidRootPart.Position)
+				if vis then
+					oripart.Size = Vector3.new(Hum.HumanoidRootPart.Size.X, Hum.HumanoidRootPart.Size.Y*1.5, Hum.HumanoidRootPart.Size.Z)
+					oripart.CFrame = CFrame.new(Hum.HumanoidRootPart.CFrame.Position, Camera.CFrame.Position)
+					local SizeX = oripart.Size.X
+					local SizeY = oripart.Size.Y
+					local TL = Camera:WorldToViewportPoint((oripart.CFrame * CFrame.new(SizeX, SizeY, 0)).p)
+					local TR = Camera:WorldToViewportPoint((oripart.CFrame * CFrame.new(-SizeX, SizeY, 0)).p)
+					local BL = Camera:WorldToViewportPoint((oripart.CFrame * CFrame.new(SizeX, -SizeY, 0)).p)
+					local BR = Camera:WorldToViewportPoint((oripart.CFrame * CFrame.new(-SizeX, -SizeY, 0)).p)
+
+					if Settings.Team_Check then
+						if plr.TeamColor == Player.TeamColor then
+							Colorize(Library, Color3.fromRGB(0, 255, 0))
+						else 
+							Colorize(Library, Color3.fromRGB(255, 0, 0))
+						end
+					end
+
+					if Settings.Team_Color then
+						Colorize(Library, plr.TeamColor.Color)
+					end
+
+					local ratio = (Camera.CFrame.p - Hum.HumanoidRootPart.Position).magnitude
+					local offset = math.clamp(1/ratio*750, 2, 300)
+
+					Library.TL1.From = Vector2.new(TL.X, TL.Y)
+					Library.TL1.To = Vector2.new(TL.X + offset, TL.Y)
+					Library.TL2.From = Vector2.new(TL.X, TL.Y)
+					Library.TL2.To = Vector2.new(TL.X, TL.Y + offset)
+
+					Library.TR1.From = Vector2.new(TR.X, TR.Y)
+					Library.TR1.To = Vector2.new(TR.X - offset, TR.Y)
+					Library.TR2.From = Vector2.new(TR.X, TR.Y)
+					Library.TR2.To = Vector2.new(TR.X, TR.Y + offset)
+
+					Library.BL1.From = Vector2.new(BL.X, BL.Y)
+					Library.BL1.To = Vector2.new(BL.X + offset, BL.Y)
+					Library.BL2.From = Vector2.new(BL.X, BL.Y)
+					Library.BL2.To = Vector2.new(BL.X, BL.Y - offset)
+
+					Library.BR1.From = Vector2.new(BR.X, BR.Y)
+					Library.BR1.To = Vector2.new(BR.X - offset, BR.Y)
+					Library.BR2.From = Vector2.new(BR.X, BR.Y)
+					Library.BR2.To = Vector2.new(BR.X, BR.Y - offset)
+
+					Vis(Library, true)
+
+					if Settings.Autothickness then
+						local distance = (Player.Character.HumanoidRootPart.Position - oripart.Position).magnitude
+						local value = math.clamp(1/distance*100, 1, 4) --0.1 is min thickness, 6 is max
+						for u, x in pairs(Library) do
+							x.Thickness = value
+						end
+					else 
+						for u, x in pairs(Library) do
+							x.Thickness = Settings.Box_Thickness
+						end
+					end
+				else 
+					Vis(Library, false)
+				end
+			else 
+				Vis(Library, false)
+				if game:GetService("Players"):FindFirstChild(plr.Name) == nil then
+					for i, v in pairs(Library) do
+						v:Remove()
+						oripart:Destroy()
+					end
+					c:Disconnect()
+				end
+			end
+		end)
+	end
+	coroutine.wrap(Updater)()
+end
+
+-- Draw Boxes
+for i, v in pairs(game:GetService("Players"):GetPlayers()) do
+	if v.Name ~= Player.Name then
+		coroutine.wrap(Main)(v)
+	end
+end
+
+game:GetService("Players").PlayerAdded:Connect(function(newplr)
+	coroutine.wrap(Main)(newplr)
+end)
+
+   end,})
+
+
+
+
+
+EspTab:AddButton({
+	Name = "Esp Atms",
+	Callback = function()
+		-- loadstring
+		local ESP = loadstring(game:HttpGet("https://kiriot22.com/releases/ESP.lua"))()
+
+		-- config
+		ESP.Players = false
+		ESP.Boxes = false
+		ESP.Names = true
+		ESP:Toggle(true)
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM5", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM1", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM12", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM2", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM15", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM3", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM13", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM4", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM14", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM5", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM11", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM6", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM10", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM7", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM9", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM8", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+-- Dendrite.cc was here!!
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM1", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM9", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM2", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM10", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM3", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM11", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM4", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM12", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM7", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM13", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM8", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM14", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+
+		-- object
+		ESP:AddObjectListener(Workspace.ATMS, { -- Object Path, For example: Workspace.ThisFolder
+			Name = "ATM6", --Object name inside of the path, for example: Workspace.ThisFolder.Item_1
+			CustomName = "ATM15", -- Name you want to be displayed
+			Color = Color3.fromRGB(260, 260, 260), -- Color
+			IsEnabled = "whatever" -- Any name, has to be the same as the last line: ESP.TheNameYouWant
+		})
+		ESP.whatever = true
+	end,
+})
+
+local AutoFarmTab = Window:MakeTab({
+	Name = "AutoFarm",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+AutoFarmTab:AddButton({
+	Name = "Box Auto Farm",
+	Callback = function()
+        print("Loading")
+repeat wait() until game:IsLoaded()
+
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+if _G.hold then _G.hold:Disconnect() end
+_G.hold = ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
+    prompt.HoldDuration = 0.1;
+end)
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local camera = game.Workspace.CurrentCamera
+
+local truck = game.Workspace:WaitForChild("cratetruck2")
+
+local jobStart = game.Workspace:WaitForChild("PlaceHere")
+local startProx = jobStart:FindFirstChild("Attachment"):FindFirstChild("ProximityPrompt")
+
+local jobEnd = truck:WaitForChild("Model"):WaitForChild("ClickBox")
+local endProx = jobEnd:FindFirstChild("ProximityPrompt")
+
+local function walkTo(Humanoid, Vector3, distance)
+if not distance then distance = 10 end
+
+humanoid:MoveTo(position)
+repeat humanoid:MoveTo(position) wait(0.25) until (humanoid.Parent.PrimaryPart.Position - position).Magnitude < distance
+
+return
+end
+
+local function loop(speed)
+--print("Loop")
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:FindFirstChild("Humanoid")
+
+--print("Running checks.")
+if not humanoid then warn("Could not find humanoid") return end
+if (character.PrimaryPart.Position - jobStart.Position).Magnitude > 15 then warn("Primary distance exceeds 15 studs") return end
+
+if speed then humanoid.WalkSpeed = 23 end
+
+walkTo(humanoid, jobStart.Position, startProx.MaxActivationDistance)
+
+camera.CameraSubject = jobStart
+repeat fireproximityprompt(startProx, 1) wait(startProx.HoldDuration+0.25) until player.Backpack:FindFirstChild("Crate")
+camera.CameraSubject = character.PrimaryPart
+player.Backpack:FindFirstChild("Crate").Parent = character
+
+if speed then humanoid.WalkSpeed = 23 end
+walkTo(humanoid, Vector3.new(-540, 4, -83), 1)
+walkTo(humanoid, jobEnd.Position - Vector3.new(0,0,5), endProx.MaxActivationDistance)
+
+camera.CameraSubject = jobEnd
+repeat fireproximityprompt(endProx, 1) wait(endProx.HoldDuration+0.25) until not character:FindFirstChild("Crate")
+camera.CameraSubject = character.PrimaryPart
+walkTo(humanoid, Vector3.new(-540, 4, -83), 1)
+
+
+humanoid.WalkSpeed = 10
+end
+
+print("Loaded")
+
+if _G.enabled then _G.enabled = not _G.enabled end
+
+_G.enabled = true
+local runSpeed = true
+while _G.enabled == true do task.wait()
+loop(runSpeed)
+end
+    -- The function that takes place when the button is pressed
+    end,
+ })
+
+
+
+local MiscTab = Window:MakeTab({
+	Name = "Misc",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
+
+
+AutoFarmTab:AddButton({
+	Name = "Trash Auto Farm",
+	Callback = function()
+            		-- Function to teleport to specific coordinates and hold 'E' key
+--[[
+	WARNING: Heads up! This script has not been verified by ScriptBlox. Use at your own risk!
+]]
+local Noclip = nil
+local Clip = nil
+
+function noclip()
+	Clip = false
+	local function Nocl()
+		if Clip == false and game.Players.LocalPlayer.Character ~= nil then
+			for _,v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+				if v:IsA('BasePart') and v.CanCollide and v.Name ~= floatName then
+					v.CanCollide = false
 				end
 			end
 		end
-		while true do
-			modifyProximityPrompts()
-			wait(5)
-		end
+		wait(0.21) -- basic optimization
 	end
+	Noclip = game:GetService('RunService').Stepped:Connect(Nocl)
+end
+
+function clip()
+	if Noclip then Noclip:Disconnect() end
+	Clip = true
+end
+
+noclip()
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local backpack = player.Backpack
+local coordinates = {
+    Vector3.new(698.394287109375, 3.5371994972229004, 170.7313232421875),
+    Vector3.new(729.8390502929688, 3.4121947288513184, 211.96453857421875)
 }
+local stopScript = false
 
+local function HoldEFor2Seconds()
+    game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    wait(1)
+    game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
+end
 
+local function MoveBackAndForth()
+    while not stopScript do
+        for i = 1, #coordinates do
+            local coord = coordinates[i]
+            humanoid.WalkSpeed = 22
+            humanoid:MoveTo(coord)
+            humanoid.MoveToFinished:Wait()
 
-MainTab:Slider{
-    Name = "Walk Speed",
-    Default = 16,
-    Min = 1,
-    Max = 22.1,
-    Description = "Adjust the walk speed of the character",
-    Callback = function(Value)
-        local character = game.Players.LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                while true do
-                    humanoid.WalkSpeed = Value
-                    wait(0.1)
+            if stopScript then
+                return  -- Exit the function if stopScript is true
+            end
+
+            if backpack then
+                local crate = backpack:FindFirstChild("TrashBag")
+                if crate then
+                    crate.Parent = character
                 end
             end
-        end
-    end
-}
-MainTab:Button{
-    Name = "DELETED FLOOR FIX",
-	Description = "Stops You From Falling Threw Some Building. (TESTING).",
-    Callback = function()
-    local baseplateSize = Vector3.new(10000000000, 0, 10000000000)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local function SpawnBaseplate()
-    local baseplatePosition = humanoidRootPart.Position + Vector3.new(0, -3.3, 0)
-    local baseplate = Instance.new("Part")
-    baseplate.Size = baseplateSize
-    baseplate.Position = baseplatePosition
-    baseplate.Anchored = true
-    baseplate.CanCollide = true
-    baseplate.Parent = game.Workspace
-    baseplate.BrickColor = BrickColor.new("Dark stone grey")
-    baseplate.Material = Enum.Material.Concrete
-    end
-    game.Players.LocalPlayer.CharacterAdded:Connect(function()
-     SpawnBaseplate()
-    end)
-    if game.Players.LocalPlayer.Character then
-    SpawnBaseplate()
-    end
-    end
-}
-MainTab:Button{
-	Name = "C + Click Delete",
-	Description = "Hold C and Click To Delete Modules.",
-	Callback = function(state)
-	local Plr = game:GetService("Players").LocalPlayer
-    local Mouse = Plr:GetMouse()
-    Mouse.Button1Down:connect(function()
-    if not game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.C) then return end
-    if not Mouse.Target then return end
-    Mouse.Target:Destroy()
-    end)
-	end
-}
 
+            HoldEFor2Seconds()
+        end -- Dendrite.cc was here!!
+    end
+end
 
-AimTab:Button{
-	Name = "camlock","e",
-	Description = locks,
+local function OnKeyPress(input)
+    if input.KeyCode == Enum.KeyCode.F1 then
+        stopScript = true
+        humanoid.WalkSpeed = 16  -- Reset walk speed to default when stopping
+    end
+end
+
+game:GetService("UserInputService").InputBegan:Connect(OnKeyPress)
+
+MoveBackAndForth()
+ end
+}) 
+
+MiscTab:AddButton({
+	Name = "Instant Loot",
 	Callback = function()
-    
-    
-    getgenv().OldAimPart = "Head"
-    getgenv().AimPart = "Head" -- For R15 Games: {Head, Head, Headt, Head} | For R6 Games: {Head, Head, Head}  
-        getgenv().AimlockKey = "e"
-        getgenv().AimRadius = 30 -- How far away from someones character you want to lock on at
-        getgenv().ThirdPerson = true 
-        getgenv().FirstPerson = true
-        getgenv().TeamCheck = false -- Check if Target is on your Team (True means it wont lock onto your teamates, false is vice versa) (Set it to false if there are no teams)
-        getgenv().PredictMovement = true -- Predicts if they are moving in fast velocity (like jumping) so the aimbot will go a bit faster to match their speed 
-        getgenv().PredictionVelocity = 6.611224
-        getgenv().CheckIfJumped = true
-        getgenv().Smoothness = false
-        getgenv().SmoothnessAmount = 0.2
-     
-        local Players, Uis, RService, SGui = game:GetService"Players", game:GetService"UserInputService", game:GetService"RunService", game:GetService"StarterGui";
-        local Client, Mouse, Camera, CF, RNew, Vec3, Vec2 = Players.LocalPlayer, Players.LocalPlayer:GetMouse(), workspace.CurrentCamera, CFrame.new, Ray.new, Vector3.new, Vector2.new;
-        local Aimlock, MousePressed, CanNotify = true, false, false;
-        local AimlockTarget;
-        local OldPre;
-     
-     
-     
-        getgenv().WorldToViewportPoint = function(P)
-            return Camera:WorldToViewportPoint(P)
-        end
-     
-        getgenv().WorldToScreenPoint = function(P)
-            return Camera.WorldToScreenPoint(Camera, P)
-        end
-     
-        getgenv().GetObscuringObjects = function(T)
-            if T and T:FindFirstChild(getgenv().AimPart) and Client and Client.Character:FindFirstChild("Head") then 
-                local RayPos = workspace:FindPartOnRay(RNew(
-                    T[getgenv().AimPart].Position, Client.Character.Head.Position)
-                )
-                if RayPos then return RayPos:IsDescendantOf(T) end
-            end
-        end
-     
-        getgenv().GetNearestTarget = function()
-           
-            local players = {}
-            local PLAYER_HOLD  = {}
-            local DISTANCES = {}
-            for i, v in pairs(Players:GetPlayers()) do
-                if v ~= Client then
-                    table.insert(players, v)
-                end
-            end
-            for i, v in pairs(players) do
-                if v.Character ~= nil then
-                    local AIM = v.Character:FindFirstChild("Head")
-                    if getgenv().TeamCheck == true and v.Team ~= Client.Team then
-                        local DISTANCE = (v.Character:FindFirstChild("Head").Position - game.Workspace.CurrentCamera.CFrame.p).magnitude
-                        local RAY = Ray.new(game.Workspace.CurrentCamera.CFrame.p, (Mouse.Hit.p - game.Workspace.CurrentCamera.CFrame.p).unit * DISTANCE)
-                        local HIT,POS = game.Workspace:FindPartOnRay(RAY, game.Workspace)
-                        local DIFF = math.floor((POS - AIM.Position).magnitude)
-                        PLAYER_HOLD[v.Name .. i] = {}
-                        PLAYER_HOLD[v.Name .. i].dist= DISTANCE
-                        PLAYER_HOLD[v.Name .. i].plr = v
-                        PLAYER_HOLD[v.Name .. i].diff = DIFF
-                        table.insert(DISTANCES, DIFF)
-                    elseif getgenv().TeamCheck == false and v.Team == Client.Team then 
-                        local DISTANCE = (v.Character:FindFirstChild("Head").Position - game.Workspace.CurrentCamera.CFrame.p).magnitude
-                        local RAY = Ray.new(game.Workspace.CurrentCamera.CFrame.p, (Mouse.Hit.p - game.Workspace.CurrentCamera.CFrame.p).unit * DISTANCE)
-                        local HIT,POS = game.Workspace:FindPartOnRay(RAY, game.Workspace)
-                        local DIFF = math.floor((POS - AIM.Position).magnitude)
-                        PLAYER_HOLD[v.Name .. i] = {}
-                        PLAYER_HOLD[v.Name .. i].dist= DISTANCE
-                        PLAYER_HOLD[v.Name .. i].plr = v
-                        PLAYER_HOLD[v.Name .. i].diff = DIFF
-                        table.insert(DISTANCES, DIFF)
-                    end
-                end
-            end
-     
-            if unpack(DISTANCES) == nil then
-                return nil
-            end
-     
-            local L_DISTANCE = math.floor(math.min(unpack(DISTANCES)))
-            if L_DISTANCE > getgenv().AimRadius then
-                return nil
-            end
-     
-            for i, v in pairs(PLAYER_HOLD) do
-                if v.diff == L_DISTANCE then
-                    return v.plr
-                end
-            end
-            return nil
-        end
-     
-        Mouse.KeyDown:Connect(function(a)
-            if not (Uis:GetFocusedTextBox()) then 
-                if a == AimlockKey and AimlockTarget == nil then
-                    pcall(function()
-                        if MousePressed ~= true then MousePressed = true end 
-                        local Target;Target = GetNearestTarget()
-                        if Target ~= nil then 
-                            AimlockTarget = Target
-                        end
-                    end)
-                elseif a == AimlockKey and AimlockTarget ~= nil then
-                    if AimlockTarget ~= nil then AimlockTarget = nil end
-                    if MousePressed ~= false then 
-                        MousePressed = false 
-                    end
-                end
-            end
-        end)
-     
-        RService.RenderStepped:Connect(function()
-            if getgenv().ThirdPerson == true and getgenv().FirstPerson == true then 
-                if (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude > 1 or (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude <= 1 then 
-                    CanNotify = true 
-                else 
-                    CanNotify = false 
-                end
-            elseif getgenv().ThirdPerson == true and getgenv().FirstPerson == false then 
-                if (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude > 1 then 
-                    CanNotify = true 
-                else 
-                    CanNotify = false 
-                end
-            elseif getgenv().ThirdPerson == false and getgenv().FirstPerson == true then 
-                if (Camera.Focus.p - Camera.CoordinateFrame.p).Magnitude <= 1 then 
-                    CanNotify = true 
-                else 
-                    CanNotify = false 
-                end
-            end
-            if Aimlock == true and MousePressed == true then 
-                if AimlockTarget and AimlockTarget.Character and AimlockTarget.Character:FindFirstChild(getgenv().AimPart) then 
-                    if getgenv().FirstPerson == true then
-                        if CanNotify == true then
-                            if getgenv().PredictMovement == true then
-                                if getgenv().Smoothness == true then
-                                    --// The part we're going to lerp/smoothen \\--
-                                    local Main = CF(Camera.CFrame.p, AimlockTarget.Character[getgenv().AimPart].Position + AimlockTarget.Character[getgenv().AimPart].Velocity/PredictionVelocity)
-     
-                                    --// Making it work \\--
-                                    Camera.CFrame = Camera.CFrame:Lerp(Main, getgenv().SmoothnessAmount, Enum.EasingStyle.Elastic, Enum.EasingDirection.InOut)
-                                else
-                                    Camera.CFrame = CF(Camera.CFrame.p, AimlockTarget.Character[getgenv().AimPart].Position + AimlockTarget.Character[getgenv().AimPart].Velocity/PredictionVelocity)
-                                end
-                            elseif getgenv().PredictMovement == false then 
-                                if getgenv().Smoothness == true then
-                                    --// The part we're going to lerp/smoothen \\--
-                                    local Main = CF(Camera.CFrame.p, AimlockTarget.Character[getgenv().AimPart].Position)
-     
-                                    --// Making it work \\--
-                                    Camera.CFrame = Camera.CFrame:Lerp(Main, getgenv().SmoothnessAmount, Enum.EasingStyle.Elastic, Enum.EasingDirection.InOut)
-                                else
-                                    Camera.CFrame = CF(Camera.CFrame.p, AimlockTarget.Character[getgenv().AimPart].Position)
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-             if CheckIfJumped == true then
-           if AimlockTarget.Character.HuDDDDDDDDDDWmanoid.FloorMaterial == Enum.Material.Air then
-     
-               getgenv().AimPart = "HumanoidRootPart"
-           else
-             getgenv().AimPart = getgenv().OldAimPart
-     
-           end
-        end
-    end)
-    
-     end
-}
-AimTab:Toggle{
-    Name = "Aimbot",
-    Description = "Locks Onto Other Players Heads.",
-    Callback = function(enabled)
-        _G.AimbotEnabled = enabled
+           local ProximityPromptService = game:GetService("ProximityPromptService")
 
-        if enabled then
-            Holding = false -- Reset holding state when enabling Aimbot
-        end
-    end
-}
-
--- FOV Circle Toggle
-AimTab:Toggle{
-    Name = "FOV Circle",
-    Description = "Toggle Visibility of FOV Circle.",
-    Callback = function(enabled)
-        _G.CircleVisible = enabled
-        FOVCircle.Visible = enabled
-    end
-}
-
-
-AimTab:Slider{
-    Name = "FOV Radius",
-    Default = 60,
-    Min = 20,
-    Max = 150,
-    Callback = function(value)
-        _G.CircleRadius = value
-        FOVCircle.Radius = value
-    end
-}
-
-local Camera = workspace.CurrentCamera
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local LocalPlayer = Players.LocalPlayer
-local Holding = false
-
-_G.TeamCheck = false -- If set to true then the script would only lock your aim at enemy team members.
-_G.AimPart = "Head" -- Where the aimbot script would lock at.
-_G.Sensitivity = 0 -- How many seconds it takes for the aimbot script to officially lock onto the target's aimpart.
-
-_G.CircleSides = 64 -- How many sides the FOV circle would have.
-_G.CircleColor = Color3.fromRGB(255, 255, 255) -- (RGB) Color that the FOV circle would appear as.
-_G.CircleTransparency = 0.7 -- Transparency of the circle.
-_G.CircleRadius = 60 -- Initial radius of the circle / FOV.
-_G.CircleFilled = false -- Determines whether or not the circle is filled.
-_G.CircleVisible = false -- Initial visibility of the circle is false.
-_G.CircleThickness = 0 -- The thickness of the circle.
-
-local FOVCircle = Drawing.new("Circle")
-FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-FOVCircle.Radius = _G.CircleRadius
-FOVCircle.Filled = _G.CircleFilled
-FOVCircle.Color = _G.CircleColor
-FOVCircle.Visible = _G.CircleVisible -- Set initial visibility based on _G.CircleVisible
-FOVCircle.Radius = _G.CircleRadius
-FOVCircle.Transparency = _G.CircleTransparency
-FOVCircle.NumSides = _G.CircleSides
-FOVCircle.Thickness = _G.CircleThickness
-
-local function GetClosestPlayer()
-    local MaximumDistance = _G.CircleRadius
-    local Target = nil
-
-    for _, v in next, Players:GetPlayers() do
-        if v.Name ~= LocalPlayer.Name then
-            if _G.TeamCheck == true then
-                if v.Team ~= LocalPlayer.Team then
-                    if v.Character ~= nil then
-                        if v.Character:FindFirstChild("HumanoidRootPart") ~= nil then
-                            if v.Character:FindFirstChild("Humanoid") ~= nil and v.Character:FindFirstChild("Humanoid").Health > 0 then
-                                local ScreenPoint = Camera:WorldToScreenPoint(v.Character:WaitForChild("HumanoidRootPart").Position)
-                                local VectorDistance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(ScreenPoint.X, ScreenPoint.Y)).Magnitude
-                                
-                                if VectorDistance < MaximumDistance then
-                                    Target = v
-                                end
-                            end
-                        end
-                    end
-                end
-            else
-                if v.Character ~= nil then
-                    if v.Character:FindFirstChild("HumanoidRootPart") ~= nil then
-                        if v.Character:FindFirstChild("Humanoid") ~= nil and v.Character:FindFirstChild("Humanoid").Health > 0 then
-                            local ScreenPoint = Camera:WorldToScreenPoint(v.Character:WaitForChild("HumanoidRootPart").Position)
-                            local VectorDistance = (Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y) - Vector2.new(ScreenPoint.X, ScreenPoint.Y)).Magnitude
-                            
-                            if VectorDistance < MaximumDistance then
-                                Target = v
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return Target
-end
-
-UserInputService.InputBegan:Connect(function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseButton2 then
-        Holding = true
-    end
+if _G.hold then _G.hold:Disconnect() end
+_G.hold = ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt)
+    prompt.HoldDuration = 0;
 end)
 
-UserInputService.InputEnded:Connect(function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseButton2 then
-        Holding = false
-    end
-end)
 
-RunService.RenderStepped:Connect(function()
-    if Holding == true and _G.AimbotEnabled == true then
-        local closestPlayer = GetClosestPlayer()
-        if closestPlayer and closestPlayer.Character and closestPlayer.Character[_G.AimPart] then
-            TweenService:Create(Camera, TweenInfo.new(_G.Sensitivity, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {CFrame = CFrame.new(Camera.CFrame.Position, closestPlayer.Character[_G.AimPart].Position)}):Play()
-        end
-    end
 
-    -- Update FOV Circle
-    if _G.CircleVisible then
-        FOVCircle.Position = Vector2.new(UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
-        FOVCircle.Radius = _G.CircleRadius
-        FOVCircle.Filled = _G.CircleFilled
-        FOVCircle.Color = _G.CircleColor
-        FOVCircle.Visible = true -- Ensure FOV circle is always visible when _G.CircleVisible is true
-        FOVCircle.Transparency = _G.CircleTransparency
-        FOVCircle.NumSides = _G.CircleSides
-        FOVCircle.Thickness = _G.CircleThickness
-    else
-        FOVCircle.Visible = false -- Hide FOV circle when _G.CircleVisible is false
-    end
-end)
+   end,
+})
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Camera = game.Workspace.CurrentCamera  -- Assuming Camera is accessible from this context
 
-local espEnabled = false
-local EspList = {}
+AutoFarmTab:AddButton({
+	Name = "Anti Afk (Must Use While Farming!)",
+	Callback = function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/yeroscripthide/script-0x391/main/anti%20afk%20og"))()
 
--- Function to create ESP for a player
-local function createESP(Player)
-    local Box = Drawing.new("Square")
-    Box.Thickness = 2
-    Box.Filled = false
-    Box.Color = Color3.fromRGB(230, 60, 0)  -- Orange color
+		end,
+  	    
+})
 
-    local function update()
-        local Character = Player.Character
-        if Character then
-            local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-            if Humanoid and Humanoid.Health > 0 then
-                local Pos, OnScreen = Camera:WorldToViewportPoint(Character.Head.Position)
-                if OnScreen then
-                    local X = Pos.X
-                    local Y = Pos.Y
-                    Box.Size = Vector2.new(2450 / Pos.Z, 3850 / Pos.Z)
-                    Box.Position = Vector2.new(X - Box.Size.X / 2, Y - Box.Size.Y / 9)
-                    Box.Visible = espEnabled
-                    return
-                end
-            end
-        end
-        Box.Visible = false
-    end
-    update()
+MiscTab:AddButton({
+	Name = "Show Guns",
+	Callback = function()
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/yeroscripthide/script-0x391/main/guns"))()
+	end,
 
-    local Connection1 = Player.CharacterAdded:Connect(function()
-        update()
-    end)
-    local Connection2 = Player.CharacterRemoving:Connect(function()
-        Box.Visible = false
-    end)
-
-    return {
-        update = update,
-        disconnect = function()
-            Box:Remove()
-            Connection1:Disconnect()
-            Connection2:Disconnect()
-        end
-    }
-end
-
--- Function to toggle ESP visibility
-local function toggleESP(enabled)
-    espEnabled = enabled
-    for _, espInstance in ipairs(EspList) do
-        espInstance.update()
-    end
-end
-
--- Function to create ESP for all current players
-local function createAllESP()
-    for _, Player in pairs(Players:GetPlayers()) do
-        if Player ~= Players.LocalPlayer then
-            table.insert(EspList, createESP(Player))
-        end
-    end
-end
-
--- Handle new player joining
-Players.PlayerAdded:Connect(function(player)
-    if player ~= Players.LocalPlayer then
-        table.insert(EspList, createESP(player))
-    end
-end)
-
--- Initialize ESP for existing players
-createAllESP()
-
--- Connect to RenderStepped to update ESP positions
-game:GetService("RunService").RenderStepped:Connect(function()
-    for _, espInstance in ipairs(EspList) do
-        espInstance.update()
-    end
-end)
-
--- Example of toggling ESP via UI (adjust this according to your UI setup)
-VisualsTab:Toggle{
-    Name = "Boxes",
-    Description = "Shows Boxes Around Players.",
-    Callback = function(state)
-        espEnabled = state
-        toggleESP(state)
-    end
-}
-
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Camera = game.Workspace.CurrentCamera  -- Assuming Camera is accessible from this context
-
-local espEnabled = false
-local EspList = {}
-
--- Function to create ESP for a player
-local function createESP(Player)
-    local Name = Drawing.new("Text")
-    Name.Text = Player.Name
-    Name.Size = 16
-    Name.Outline = true
-    Name.Center = true
-    Name.Color = Color3.fromRGB(230, 60, 0)  -- Blood orange color (RGB: 230, 60, 0)
-
-    local function update()
-        local Character = Player.Character
-        if Character then
-            local Humanoid = Character:FindFirstChildOfClass("Humanoid")
-            if Humanoid and Humanoid.Health > 0 then
-                local Pos, OnScreen = Camera:WorldToViewportPoint(Character.Head.Position)
-                if OnScreen then
-                    local X = Pos.X
-                    local Y = Pos.Y
-                    Name.Position = Vector2.new(X, Y - 33)
-                    Name.Visible = espEnabled
-                    return
-                end
-            end
-        end
-        Name.Visible = false
-    end
-    update()
-
-    local Connection1 = Player.CharacterAdded:Connect(function()
-        update()
-    end)
-    local Connection2 = Player.CharacterRemoving:Connect(function()
-        Name.Visible = false
-    end)
-
-    return {
-        update = update,
-        disconnect = function()
-            Name:Remove()
-            Connection1:Disconnect()
-            Connection2:Disconnect()
-        end
-    }
-end
-
--- Function to toggle ESP visibility
-local function toggleESP(enabled)
-    espEnabled = enabled
-    for _, espInstance in ipairs(EspList) do
-        espInstance.update()
-    end
-end
-
--- Function to create ESP for all current players
-local function createAllESP()
-    for _, Player in pairs(Players:GetPlayers()) do
-        if Player ~= Players.LocalPlayer then
-            table.insert(EspList, createESP(Player))
-        end
-    end
-end
-
--- Handle new player joining
-Players.PlayerAdded:Connect(function(player)
-    if player ~= Players.LocalPlayer then
-        table.insert(EspList, createESP(player))
-    end
-end)
-
--- Initialize ESP for existing players
-createAllESP()
-
--- Connect to RenderStepped to update ESP positions
-game:GetService("RunService").RenderStepped:Connect(function()
-    for _, espInstance in ipairs(EspList) do
-        espInstance.update()
-    end
-end)
-
--- Example of toggling ESP via UI (adjust this according to your UI setup)
-VisualsTab:Toggle{
-    Name = "Names",
-    Description = "Shows Names Above Players.",
-    Callback = function(state)
-        espEnabled = state
-        toggleESP(state)
-    end
-}
-
-
-
-VisualsTab:Toggle{
-    Name = "Health",
-    StartingState = false,
-    Description = "Shows Health Bars Above Players.",
-    Callback = function(enabled)
-        local function createHealthBar(player)
-            if player == game.Players.LocalPlayer then
-                return
-            end
-            local humanoid = player.Character:WaitForChild("Humanoid")
-            
-            local gui = Instance.new("BillboardGui")
-            gui.Name = "HealthBar"
-            gui.Adornee = player.Character.Head
-            gui.Size = UDim2.new(5, 0, .3, 0)  -- Make the health bar thinner and taller
-            gui.StudsOffset = Vector3.new(0, -5.7, 0)  -- Adjust to move it significantly down and to the right
-            gui.AlwaysOnTop = true
-            gui.Parent = player.Character.Head           
-            local frame = Instance.new("Frame")
-            frame.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
-            frame.BackgroundColor3 = Color3.fromRGB(230, 60, 0)
-            frame.BorderSizePixel = 0
-            frame.Parent = gui
-            
-            humanoid.HealthChanged:Connect(function()
-                frame.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
-            end)
-            
-            player.CharacterAdded:Connect(function(character)
-                humanoid = character:WaitForChild("Humanoid")
-                gui.Adornee = character.Head
-                frame.Size = UDim2.new(humanoid.Health / humanoid.MaxHealth, 0, 1, 0)
-            end)
-        end
-        
-        local function toggleHealthBars(enabled)
-            for _, player in pairs(game.Players:GetPlayers()) do
-                if enabled then
-                    createHealthBar(player)
-                else
-                    if player ~= game.Players.LocalPlayer then
-                        local healthBar = player.Character and player.Character:FindFirstChild("Head"):FindFirstChild("HealthBar")
-                        if healthBar then
-                            healthBar:Destroy()
-                        end
-                    end
-                end
-            end
-        end
-        
-        toggleHealthBars(enabled)
-        
-        game.Players.PlayerAdded:Connect(function(player)
-            if enabled then
-                createHealthBar(player)
-            end
-        end)
-    end
-}
-local excludedTools = {
-    "Card", "Hot Chips", "Potato Chips", "Phone", "Fist",
-    "Crate", "TrashBag", "Knife", "Fake ID", "Standard Clip",
-    "Potato", "Drum Magazine", "Extended Clip", "Speed Loader",
-    "SkiMask", "Flour", "Heavy Magazine", "CaneBeam", "Bacon Egg And Cheese"
- }
-    local showGunsEnabled = false
-    local function isExcludedTool(toolName)
-    for _, excludedName in ipairs(excludedTools) do
-        if toolName == excludedName then
-            return true
-        end
-    end
-    return false
-    end
-    local function updatePlayerTool(player)
-    if not showGunsEnabled then return end
-    local character = player.Character
-    if not character then return end
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-    local currentTool = humanoid.Parent:FindFirstChildOfClass("Tool")
-    local billboardName = "ToolDisplay"
-    local billboard = character:FindFirstChild(billboardName)
-    if not billboard then
-        billboard = Instance.new("BillboardGui")
-        billboard.Name = billboardName
-        billboard.AlwaysOnTop = true
-        billboard.Size = UDim2.new(3, 0, 1, 0)
-        billboard.StudsOffset = Vector3.new(0, 6, 0) 
-        local textLabel = Instance.new("TextLabel", billboard)
-        textLabel.Size = UDim2.new(1, 0, 1, 0)
-        textLabel.TextSize = 20
-        textLabel.TextStrokeTransparency = 0.5
-        textLabel.BackgroundTransparency = 1
-        textLabel.Font = Enum.Font.SourceSansBold
-        billboard.Parent = character
-    end
-    local textLabel = billboard.TextLabel
-    if currentTool then
-        local toolName = currentTool.Name
-        if isExcludedTool(toolName) then
-            textLabel.Text = ""
-        else
-            textLabel.Text = toolName
-            if string.find(toolName, "Micro ARP") or
-               string.find(toolName, "AK Draco") then
-                textLabel.TextColor3 = Color3.new(1, 0, 0)
-            elseif string.find(toolName, "MCX") or
-                   string.find(toolName, "Draco") or
-                   string.find(toolName, "Tec-9") or
-                   string.find(toolName, "Springfield XD MOD") or
-                   string.find(toolName, "AR Pistol") or
-                   string.find(toolName, "P320E") or
-                   string.find(toolName, "FN57") or
-                   string.find(toolName, "G19EXT") then
-                textLabel.TextColor3 = Color3.new(0, 1, 0)
-            elseif string.find(toolName, "Drum") then
-                textLabel.TextColor3 = Color3.new(1, 0.8, 0)
-            else
-                textLabel.TextColor3 = Color3.new(1, 1, 1)
-            end
-        end
-    else
-        textLabel.Text = ""
-    end
-    end
-    local function updatePlayerToolsLoop()
-    while true do
-        for _, player in ipairs(game.Players:GetPlayers()) do
-            updatePlayerTool(player)
-        end
-        wait(0.1)
-    end
-    end
-    spawn(updatePlayerToolsLoop)
-    local function onCharacterAdded(character)
-    updatePlayerTool(character.Parent)
-    end
-    game.Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(character)
-        onCharacterAdded(character)
-    end)
-    end)
-    local function toggleShowGuns(state)
-    showGunsEnabled = state
-    for _, player in ipairs(game.Players:GetPlayers()) do
-        if showGunsEnabled then
-            updatePlayerTool(player)
-        else
-            local billboard = player.Character:FindFirstChild("ToolDisplay")
-            if billboard then
-                billboard:Destroy()
-            end
-        end
-    end
-    end
-VisualsTab:Toggle{
-    Name = "Show Guns",
-    StartingState = false,
-    Description = "Shows Guns Above Heads.",
-    Callback = toggleShowGuns
-}
-
-AutofarmTab:Button{
-	Name = "PRESS BEFORE AUTOFARM/AUTO JOB",
-	Description = "Press F1 To Stop Farming. (TESTING).",
-    Callback = function()
-	loadstring(game:HttpGet('https://raw.githubusercontent.com/DrugScripts/sbscript/main/AF.lua'))()
-   end
-}
-AutofarmTab:Button{
-	Name = "Start Trash Job",
-	Description = "Auto Starts The Trash Job. (TESTING).",
-    Callback = function()
-    local function teleportAndHoldE(x, y, z)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(x, y, z)
-    local virtualInputManager = game:GetService("VirtualInputManager")
-    virtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    wait(5)
-    virtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-    end
-    teleportAndHoldE(717.5482788085938, 3.5371992588043213, 169.90029907226562)
-	end
-}
-AutofarmTab:Button{
-	Name = "Start Trash Farm",
-	Description = "Press F1 To Stop Farming. (TESTING).",
-    Callback = function()
-	loadstring(game:HttpGet('https://raw.githubusercontent.com/DrugScripts/sbscript/main/trash.lua'))() 
-    end
-}
-AutofarmTab:Button{
-	Name = "Start Box Job",
-	Description = "Auto Starts The Box Job (TESTING).",
-    Callback = function()
-    local function teleportAndHoldE(x, y, z)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    humanoidRootPart.CFrame = CFrame.new(x, y, z)
-    local virtualInputManager = game:GetService("VirtualInputManager")
-    virtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    wait(5)
-    virtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-    end
-    teleportAndHoldE(-579.7178344726562, 3.5371451377868652, -71.9795913696289)
-	end
-}
-AutofarmTab:Button{
-	Name = "Start Box Farm",
-	Description = "Press F1 To Stop Farming. (TESTING).",
-    Callback = function()
-	loadstring(game:HttpGet('https://raw.githubusercontent.com/yeroscripthide/mhm/main/auto%20farm%20box'))() 
-    end
-}
-TeleTab:Button{
-    Name = "PRESS BEFORE TELEPORTING",
-	Description = "Allows Teleporting (TESTING).",
-    Callback = function()
-    local baseplateSize = Vector3.new(10000000000, 0, 10000000000)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local function SpawnBaseplate()
-    local baseplatePosition = humanoidRootPart.Position + Vector3.new(0, -12, 0)
-    local baseplate = Instance.new("Part")
-    baseplate.Size = baseplateSize
-    baseplate.Position = baseplatePosition
-    baseplate.Anchored = true
-    baseplate.CanCollide = true
-    baseplate.Parent = game.Workspace
-    baseplate.BrickColor = BrickColor.new("Dark stone grey")
-    baseplate.Material = Enum.Material.Concrete
-    print("Baseplate spawned under your feet!")
-    end
-    game.Players.LocalPlayer.CharacterAdded:Connect(function()
-    SpawnBaseplate()
-    end)
-    if game.Players.LocalPlayer.Character then
-    SpawnBaseplate()
-    end
-    end
-}
-local function teleportTo(target)
-    print("Teleporting to:", target)
-end
-local MyDropdown = TeleTab:Dropdown{
-    Name = "Teleports",
-    StartingText = "None",
-    Description = "Teleport to any location on the list.",
-    Items = {
-        {"Dealership", 1},      
-        {"Box Job", 2},         
-        {"Trash Job", 3},       
-        {"Bank", 4},            
-        {"Fake ID", 5},         
-        {"Main Gun Store", 6},  
-        {"Gun Store", 7}        
-    },
-    Callback = function(item)
-        if item == 1 then
-local targetPosition = Vector3.new(732.9501342773438, 3.709825038909912, 434.654296875)
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1
-    while (target - currentPosition).magnitude > distanceThreshold do
-        local direction = (target - currentPosition).unit
-        local newPosition = currentPosition + direction * 3.4
-        if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-            humanoidRootPart.CFrame = CFrame.new(newPosition)
-        else
-            humanoidRootPart.CFrame = CFrame.new(target)
-            break
-        end
-        wait(0.1)
-        currentPosition = humanoidRootPart.Position
-    end
-    print("Teleportation to target position completed!")
-end
-teleportTo(targetPosition)
-
-        elseif item == 2 then
-
-            local targetPosition = Vector3.new(-520.0985107421875, 3.4121336936950684, -82.7499008178711)  -- Replace with your desired coordinates
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-
-    while (target - currentPosition).magnitude > distanceThreshold do
-        -- Calculate direction towards the target
-        local direction = (target - currentPosition).unit
-
-        -- Move in small increments towards the target
-        local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-
-        -- Check if the newPosition would overshoot the target
-        if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-            humanoidRootPart.CFrame = CFrame.new(newPosition)
-        else
-            humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-            break  -- Exit the loop if we've reached the target position
-        end
-
-        -- Wait briefly before checking again
-        wait(0.1)  -- Adjust wait time as needed
-        currentPosition = humanoidRootPart.Position
-    end
-
-    -- Teleportation completed
-    print("Teleportation to target position completed!")
-end
-teleportTo(targetPosition)
-
-        elseif item == 3 then
-
-            local targetPosition = Vector3.new(709.990234375, 3.5371994972229004, 157.0732421875)  -- Replace with your desired coordinates
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-
-    while (target - currentPosition).magnitude > distanceThreshold do
-        -- Calculate direction towards the target
-        local direction = (target - currentPosition).unit
-
-        -- Move in small increments towards the target
-        local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-
-        -- Check if the newPosition would overshoot the target
-        if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-            humanoidRootPart.CFrame = CFrame.new(newPosition)
-        else
-            humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-            break  -- Exit the loop if we've reached the target position
-        end
-
-        -- Wait briefly before checking again
-        wait(0.1)  -- Adjust wait time as needed
-        currentPosition = humanoidRootPart.Position
-    end
-
-    -- Teleportation completed
-    print("Teleportation to target position completed!")
-end
-teleportTo(targetPosition)
-
-        elseif item == 4 then
-local targetPosition = Vector3.new(-52.92890548706055, 3.7371387481689453, -332.91278076171875)  -- Replace with your desired coordinates
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-
-    while (target - currentPosition).magnitude > distanceThreshold do
-        -- Calculate direction towards the target
-        local direction = (target - currentPosition).unit
-
-        -- Move in small increments towards the target
-        local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-
-        -- Check if the newPosition would overshoot the target
-        if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-            humanoidRootPart.CFrame = CFrame.new(newPosition)
-        else
-            humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-            break  -- Exit the loop if we've reached the target position
-        end
-
-        -- Wait briefly before checking again
-        wait(0.1)  -- Adjust wait time as needed
-        currentPosition = humanoidRootPart.Position
-    end
-
-    -- Teleportation completed
-    print("Teleportation to target position completed!")
-end
-teleportTo(targetPosition)
-            -- Replace with your actual script for Bank
-        elseif item == 5 then
-local targetPosition = Vector3.new(216.716064453125, 3.7371325492858887, -332.35711669921875)  -- Replace with your desired coordinates
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-
-    while (target - currentPosition).magnitude > distanceThreshold do
-        -- Calculate direction towards the target
-        local direction = (target - currentPosition).unit
-
-        -- Move in small increments towards the target
-        local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-
-        -- Check if the newPosition would overshoot the target
-        if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-            humanoidRootPart.CFrame = CFrame.new(newPosition)
-        else
-            humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-            break  -- Exit the loop if we've reached the target position
-        end
-
-        -- Wait briefly before checking again
-        wait(0.1)  -- Adjust wait time as needed
-        currentPosition = humanoidRootPart.Position
-    end
-    print("Teleportation to target position completed!")
-end
-teleportTo(targetPosition)
-            -- Replace with your actual script for Fake ID
-        elseif item == 6 then
-local targetPosition = Vector3.new(219.3710479736328, 3.7300682067871094, -163.08628845214844)  -- Replace with your desired coordinates
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-
-    while (target - currentPosition).magnitude > distanceThreshold do
-        -- Calculate direction towards the target
-        local direction = (target - currentPosition).unit
-
-        -- Move in small increments towards the target
-        local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-
-        -- Check if the newPosition would overshoot the target
-        if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-            humanoidRootPart.CFrame = CFrame.new(newPosition)
-        else
-            humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-            break  -- Exit the loop if we've reached the target position
-        end
-
-        -- Wait briefly before checking again
-        wait(0.1)  -- Adjust wait time as needed
-        currentPosition = humanoidRootPart.Position
-    end
-
-    -- Teleportation completed
-    print("Teleportation to target position completed!")
-end
-
--- Call the teleport function with the target position
-teleportTo(targetPosition)
-            -- Replace with your actual script for Main Gun Store
-        elseif item == 7 then
-local targetPosition = Vector3.new(501.29888916015625, 3.5371241569519043, -182.6074981689453)  -- Replace with your desired coordinates
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1
-    while (target - currentPosition).magnitude > distanceThreshold do
-        local direction = (target - currentPosition).unit
-        local newPosition = currentPosition + direction * 3.4
-        if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-            humanoidRootPart.CFrame = CFrame.new(newPosition)
-        else
-            humanoidRootPart.CFrame = CFrame.new(target)
-            break
-        end
-        wait(0.1)
-        currentPosition = humanoidRootPart.Position
-    end
-    print("Teleportation to target position completed!")
-end
-teleportTo(targetPosition)
-        else
-            print("No script defined for this item:", item)
-        end
-    end
-}
-local MyDropdown = TeleTab:Dropdown{
-    Name = "ATMs",
-    StartingText = "None",
-    Description = "Teleports You To The ATM If Active.",
-    Items = {
-        {"ATM1", 1},
-        {"ATM2", 2},
-        {"ATM3", 3},
-        {"ATM4", 4},
-        {"ATM5", 5},
-        {"ATM6", 6},
-        {"ATM7", 7},
-        {"ATM8", 8},
-        {"ATM9", 9},
-        {"ATM10", 10},
-        {"ATM11", 11},
-        {"ATM12", 12},
-        {"ATM13", 13},
-        {"ATM14", 14},
-        {"ATM15", 15},
-    },
-    Callback = function(item)
-        if item == 1 then
-            local targetPosition = Vector3.new(-32.586585998535156, 3.763624668121338, -300.15673828125)
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM1")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)
-                break
-            end
-            wait(0.1)
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-
-        elseif item == 2 then
-            local targetPosition = Vector3.new(538.3597412109375, 3.7636241912841797, -350.0778503417969)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM2")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-
-        elseif item == 3 then
-local targetPosition = Vector3.new(497.42108154296875, 3.783940315246582, 405.0294189453125)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM3")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        elseif item == 4 then
-local targetPosition = Vector3.new(236.2193145751953, 3.844614028930664, -162.059814453125)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM4")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        elseif item == 5 
-    then local targetPosition = Vector3.new(524.8828125, -7.7628631591796875, -95.50765228271484)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM5")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        elseif item == 6 then
- local targetPosition = Vector3.new(-454.386962890625, 3.7371325492858887, 370.9426574707031)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM6")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        elseif item == 7 then
-local targetPosition = Vector3.new(-266.3318176269531, 3.8589463233947754, -210.8848419189453)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM7")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        elseif item == 8 then
- local targetPosition = Vector3.new(-10.801584243774414, 3.7636241912841797, 233.79428100585938)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM8")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        elseif item == 9 then
- local targetPosition = Vector3.new(716.7405395507812, 3.8176207542419434, 413.26226806640625)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM9")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        elseif item == 10 then
-  local targetPosition = Vector3.new(-535.468017578125, 3.7371325492858887, -20.530590057373047)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM10")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        elseif item == 11 then
-  local targetPosition = Vector3.new(-650.62890625, 3.7371325492858887, 155.3464813232422)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM11")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        elseif item == 12 then
-local targetPosition = Vector3.new(713.520263671875, 3.7636241912841797, -240.45089721679688)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM12")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        elseif item == 13 then
-  local targetPosition = Vector3.new(-314.93701171875, 3.7371325492858887, 144.9151153564453)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM13")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        elseif item == 14 then
-local targetPosition = Vector3.new(-378.14996337890625, 3.7300682067871094, -361.021484375)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM14")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        elseif item == 15 then
-local targetPosition = Vector3.new(360.02764892578125, 3.7636241912841797, -361.6149597167969)  -- Replace with your desired coordinates
-local function isATMEnabled()
-    local workspace = game:GetService("Workspace")
-    local atmFolder = workspace:FindFirstChild("ATMS")
-    if atmFolder then
-        local atm1 = atmFolder:FindFirstChild("ATM15")
-        if atm1 then
-            local attachment = atm1:FindFirstChild("Attachment")
-            if attachment then
-                local proximityPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                if proximityPrompt and proximityPrompt.Enabled then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-local function teleportTo(target)
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local currentPosition = humanoidRootPart.Position
-    local distanceThreshold = 0.1  -- Adjust as needed, determines when to stop teleporting
-    if isATMEnabled() then
-        while (target - currentPosition).magnitude > distanceThreshold do
-            local direction = (target - currentPosition).unit
-            local newPosition = currentPosition + direction * 3.4  -- Adjust increment size
-            if (newPosition - target).magnitude < (currentPosition - target).magnitude then
-                humanoidRootPart.CFrame = CFrame.new(newPosition)
-            else
-                humanoidRootPart.CFrame = CFrame.new(target)  -- Set directly to the target position
-                break  -- Exit the loop if we've reached the target position
-            end
-            wait(0.1)  -- Adjust wait time as needed
-            currentPosition = humanoidRootPart.Position
-        end
-        print("Teleportation to target position completed!")
-    else
-        print("ATM is not enabled, teleportation aborted.")
-    end
-end
-teleportTo(targetPosition)
-        else
-            -- Handle unexpected cases or add more conditions as needed
-            print("No script defined for this item:", item)
-        end
-    end
-}
+  	    
+})
